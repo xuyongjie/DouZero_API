@@ -107,7 +107,6 @@ def init(data):
         ai_amount = data["ai_amount"]
 
         if ai_amount == 1:
-
             (
                 use_hand_cards_env,
                 user_position,
@@ -171,28 +170,19 @@ def init(data):
             # print(f"env.players.keys(): {env.players.keys()}")
             if (
                 env.acting_player_position == list(env.players.keys())[0]
-            ):  # 如果下一位是AI，则直接获取出牌
-                cards, confidence = env.step(data)
-                if env.game_over:
-                    # print("{}win, game over!\n".format("farmer" if env.winner == "farmer" else "landlord"))
-                    res_game_over = True
-                    del env_list[pid]
-
+            ):  # 如果下一位是AI，则直接获取建议出牌
+                cards, confidence = env.tips(data)
                 res_data = {
                     "pid": pid,
                     "game_over": res_game_over,
-                    "play": [
+                    "tips": [
                         {
                             "cards": cards,
                             "confidence": confidence,
-                        },
-                        {
-                            "cards": None,
-                            "confidence": None,
-                        },
+                        }
                     ],
                 }
-                res_action = "play"
+                res_action = "tips"
             else:
                 res_data = {"pid": pid, "game_over": res_game_over}
                 res_action = "receive"
@@ -200,128 +190,6 @@ def init(data):
             env_list[pid] = env
             res_status = "ok"
 
-        elif ai_amount == 2:
-            ai0_use_hand_cards_env = []
-            ai0_user_position = ""
-            ai0_model = ""
-            three_landlord_cards_env = []
-            ai1_use_hand_cards_env = []
-            ai1_user_position = ""
-            ai1_model = ""
-
-            (
-                ai0_use_hand_cards_env,
-                ai0_user_position,
-                ai0_user_position_code,
-                three_landlord_cards_env,
-                ai0_model,
-            ) = get_init_data(data, 0)
-
-            (
-                ai1_use_hand_cards_env,
-                ai1_user_position,
-                ai1_user_position_code,
-                three_landlord_cards_env,
-                ai1_model,
-            ) = get_init_data(data, 1)
-
-            # 玩家位号
-            player_position_code = 3 - ai0_user_position_code - ai1_user_position_code
-            player_position = ["landlord_up", "landlord", "landlord_down"][
-                player_position_code
-            ]
-
-            # 减去两位AI的牌，剩下的牌就是玩家的手牌
-            other_hand_cards = []
-            for i in set(AllEnvCard):
-                other_hand_cards.extend(
-                    [i]
-                    * (
-                        AllEnvCard.count(i)
-                        - list(ai0_use_hand_cards_env + ai1_use_hand_cards_env).count(i)
-                    )
-                )
-
-            card_play_data_list = [{}]
-            card_play_data_list[0].update(
-                {
-                    "three_landlord_cards": three_landlord_cards_env,
-                    ai0_user_position: ai0_use_hand_cards_env,
-                    ai1_user_position: ai1_use_hand_cards_env,
-                    player_position: other_hand_cards,
-                }
-            )
-            # print(f"card_play_data_list: {card_play_data_list}")
-            # 生成手牌结束，校验手牌数量
-
-            if len(card_play_data_list[0]["three_landlord_cards"]) != 3:
-                error = Exception("底牌必须是3张")
-                raise error
-            if (
-                len(card_play_data_list[0]["landlord_up"]) != 17
-                or len(card_play_data_list[0]["landlord_down"]) != 17
-                or len(card_play_data_list[0]["landlord"]) != 20
-            ):
-                """landlord_up_cards = card_play_data_list[0]["landlord_up"]
-                landlord_down_cards = card_play_data_list[0]["landlord_down"]
-                landlord_cards = card_play_data_list[0]["landlord"]
-                print(f"landlord_up_cards:{landlord_up_cards}  landlord_down_cards:{landlord_down_cards}  landlord_cards:{landlord_cards}")"""
-                error = Exception("初始手牌数目有误")
-                raise error
-
-            cards = []
-            players = {
-                ai0_user_position: DeepAgent(ai0_user_position, ai0_model),
-                ai1_user_position: DeepAgent(ai1_user_position, ai1_model),
-            }
-            env = GameEnv(players)
-            for idx, card_play_data in enumerate(card_play_data_list):
-                env.card_play_init(card_play_data)
-                print("initialize success, game start\n")
-
-            if env.acting_player_position not in list(
-                env.players.keys()
-            ):  # 玩家是地主
-                res_data = {"pid": pid, "game_over": res_game_over}
-                res_action = "receive"
-
-            else:  # AI是地主
-                cards_pd, confidence_pd = env.step(data)  # ai出牌
-                cards_po = confidence_po = None
-                if env.game_over:
-                    # print("{}win, game over!\n".format("farmer" if env.winner == "farmer" else "landlord"))
-                    res_game_over = True
-                    env = None
-                else:
-                    if env.acting_player_position in list(
-                        env.players.keys()
-                    ):  # 第二位出牌的还是ai，则此ai为玩家下家，第一位出牌的ai为万家下家
-                        cards_po, confidence_po = env.step(data)
-                        if env.game_over:
-                            res_game_over = True
-                            env = None
-                    else:  # 第一位出牌的ai为玩家上家
-                        pass
-
-                res_data = {
-                    "pid": pid,
-                    "game_over": res_game_over,
-                    "play": [
-                        {
-                            "cards": cards_pd,
-                            "confidence": confidence_pd,
-                        },
-                        {
-                            "cards": cards_po,
-                            "confidence": confidence_po,
-                        },
-                    ],
-                }
-                res_action = "play"
-
-            if not res_game_over:
-                env_list[pid] = env
-            res_status = "ok"
     except Exception as err:
         res_action = "init"
         res_status = "fail"
@@ -380,25 +248,9 @@ def next(data):  # 收到他人出牌
         else:
             if (
                 env.acting_player_position in list(env.players.keys())
-            ):  # 如果下一位是AI，则直接获取出牌
-                cards_pd, confidence_pd = env.step(data)  # ai出牌
-                cards_po = confidence_po = None
-                if env.game_over:
-                    # print("{}win, game over!\n".format("farmer" if env.winner == "farmer" else "landlord"))
-                    res_game_over = True
-                    del env_list[pid]
-                else:
-                    if env.acting_player_position in list(
-                        env.players.keys()
-                    ):  # 第二位出牌的还是ai，也就是双ai时
-                        cards_po, confidence_po = env.step(data)
-                        if env.game_over:
-                            res_game_over = True
-                            del env_list[pid]
-                    else:  # 单ai时
-                        pass
-
-                res_action = "play"
+            ):  # 如果下一位是AI，则直接获取建议出牌
+                cards_pd, confidence_pd = env.tips(data)  # ai建议
+                res_action = "tips"
                 res_data = {
                     "pid": pid,
                     "game_over": res_game_over,
@@ -406,11 +258,7 @@ def next(data):  # 收到他人出牌
                         {
                             "cards": cards_pd,
                             "confidence": confidence_pd,
-                        },
-                        {
-                            "cards": cards_po,
-                            "confidence": confidence_po,
-                        },
+                        }
                     ],
                 }
             else:

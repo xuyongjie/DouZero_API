@@ -200,35 +200,48 @@ class GameEnv(object):
     self.player: 
     """
 
+    def tips(self,data):
+        result = []
+        confidence = None
+        action, actions_confidence = self.players[self.acting_player_position].act(self.game_infoset)
+        # print(f"self.game_infoset: {self.game_infoset}  action: {action}  actions_confidence: {actions_confidence}")
+        # 计算胜率
+        win_rate = max(actions_confidence, -1)
+        win_rate = min(win_rate, 1)
+        win_rate = str(round(float((win_rate + 1) / 2), 4))
+        result = [EnvCard2RealCard[c] for c in action]
+        confidence = round(float(win_rate) * 100, 2)
+        return result,confidence
+
     def step(self, data):
         result = []
         confidence = None
-        # 是AI角色就调用act函数通过智能体获取action，否则通过玩家输入获取action
-        if self.acting_player_position in list(self.players.keys()):
-            action, actions_confidence = self.players[self.acting_player_position].act(
-                self.game_infoset
-            )
-            # print(f"self.game_infoset: {self.game_infoset}  action: {action}  actions_confidence: {actions_confidence}")
-            # 计算胜率
-            win_rate = max(actions_confidence, -1)
-            win_rate = min(win_rate, 1)
-            win_rate = str(round(float((win_rate + 1) / 2), 4))
-            result = [EnvCard2RealCard[c] for c in action]
-            confidence = round(float(win_rate) * 100, 2)
-            # print("出牌: " + str([EnvCard2RealCard[c] for c in action]) + "， 预计胜率" + str(confidence) + "%\n")
-        else:
-            result = None
-            try:
-                action = [RealCard2EnvCard[c] for c in list(data["cards"])]
-                """
-                print("地主{}出牌:".format(
+        # # 是AI角色就调用act函数通过智能体获取action，否则通过玩家输入获取action
+        # if self.acting_player_position in list(self.players.keys()):
+        #     action, actions_confidence = self.players[self.acting_player_position].act(
+        #         self.game_infoset
+        #     )
+        #     # print(f"self.game_infoset: {self.game_infoset}  action: {action}  actions_confidence: {actions_confidence}")
+        #     # 计算胜率
+        #     win_rate = max(actions_confidence, -1)
+        #     win_rate = min(win_rate, 1)
+        #     win_rate = str(round(float((win_rate + 1) / 2), 4))
+        #     result = [EnvCard2RealCard[c] for c in action]
+        #     confidence = round(float(win_rate) * 100, 2)
+        #     # print("出牌: " + str([EnvCard2RealCard[c] for c in action]) + "， 预计胜率" + str(confidence) + "%\n")
+        # else:
+        result = None
+        try:
+            action = [RealCard2EnvCard[c] for c in list(data["cards"])]
+            """
+            print("地主{}出牌:".format(
                     "上家" if self.acting_player_position == "landlord_up" else
                     "下家" if self.acting_player_position == "landlord_down" else ""))
-                print(action, end="\n\n")
-                """
-            # “要不起”，返回空列表
-            except ValueError as e:
-                action = []
+            print(action, end="\n\n")
+            """
+        # “要不起”，返回空列表
+        except ValueError as e:
+            action = []
 
         if len(action) > 0:
             self.last_pid = self.acting_player_position
