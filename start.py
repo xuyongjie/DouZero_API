@@ -85,7 +85,6 @@ class Request(BaseHTTPRequestHandler):
                 "version": version,
                 "link": [
                     "https://github.com/kwai/DouZero",
-                    "https://github.com/tianqiraf/DouZero_For_HappyDouDiZhu",
                 ],
             }
         )

@@ -254,7 +254,7 @@ def next(data):  # 收到他人出牌
                 res_data = {
                     "pid": pid,
                     "game_over": res_game_over,
-                    "play": [
+                    "tips": [
                         {
                             "cards": cards_pd,
                             "confidence": confidence_pd,
