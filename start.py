@@ -44,7 +44,7 @@ lock = threading.Lock()
 """response data
 {
     type: "", # init/step
-    action: "", # receive/play
+    action: "", # receive/tips
     status: "", # ok/fail
     msg: "", # status为fail时不为空
     data: {} # status为fail时，如果能获取到pid则为{"pid"}，否则为{}
@@ -52,9 +52,9 @@ lock = threading.Lock()
         "pid": str,
         "game_over": boolen
     }
-    (play:){
+    (tips:){
         "pid": pid,
-        "play": [
+        "tips": [
             {
                 "cards": [],
                 "confidence": ""

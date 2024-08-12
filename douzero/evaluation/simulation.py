@@ -243,8 +243,11 @@ def next(data):  # 收到他人出牌
         if env.game_over:
             res_game_over = True
             del env_list[pid]
-            return {"action": "receive", "data": {}}
-
+            res_action="receive"
+            res_data={
+                "pid": pid,
+                "game_over": res_game_over
+            }
         else:
             if (
                 env.acting_player_position in list(env.players.keys())
