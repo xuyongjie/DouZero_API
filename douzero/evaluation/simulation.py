@@ -285,6 +285,34 @@ def next(data):  # 收到他人出牌
     }
     return result
 
+def close(data):
+    global env_list
+    res_type = "close"
+    res_action = ""
+    res_data = {}
+    res_status = ""
+    res_msg = ""
+
+    try:
+        pid = ""
+        pid = str(data["pid"])
+        del env_list[pid]
+        print(f"close pid:{pid}")
+        res_status = "ok"
+        res_msg = "closed"
+    except Exception as err:
+        res_status = "fail"
+        res_msg = str(err)
+        res_data = {"pid": pid}
+
+    result = {
+        "type": res_type,
+        "action": res_action,
+        "data": res_data,
+        "status": res_status,
+        "msg": res_msg,
+    }
+    return result
 
 def check_model(model):
     if model == "WP":

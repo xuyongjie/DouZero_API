@@ -1,5 +1,5 @@
 port = 24813
-timeout = 1800  # 超过此时长游戏未继续进行则删除游戏进程，单位s
+timeout = 600  # 超过此时长游戏未继续进行则删除游戏进程，单位s
 ###############################################################################################
 version = 1.2
 ###############################################################################################
@@ -7,7 +7,7 @@ import os
 import time
 import json
 import threading
-from douzero.evaluation.simulation import init, next, env_list
+from douzero.evaluation.simulation import init, next,close, env_list
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 lock = threading.Lock()
@@ -106,6 +106,9 @@ class Request(BaseHTTPRequestHandler):
 
         elif data["action"] == "play":  # 出牌阶段
             res = next(data["data"])
+        
+        elif data["action"] == "close":
+            res = close(data["data"])
 
         self.send_response(200)
         self.send_header("type", "post")
