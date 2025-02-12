@@ -1,4 +1,5 @@
 import os
+import random
 from douzero.env.game import GameEnv
 from .deep_agent import DeepAgent
 
@@ -78,6 +79,63 @@ AllEnvCard = [
     17,
     20,
     30,
+]
+
+AllCard = [
+    "3",
+    "3",
+    "3",
+    "3",
+    "4",
+    "4",
+    "4",
+    "4",
+    "5",
+    "5",
+    "5",
+    "5",
+    "6",
+    "6",
+    "6",
+    "6",
+    "7",
+    "7",
+    "7",
+    "7",
+    "8",
+    "8",
+    "8",
+    "8",
+    "9",
+    "9",
+    "9",
+    "9",
+    "T",
+    "T",
+    "T",
+    "T",
+    "J",
+    "J",
+    "J",
+    "J",
+    "Q",
+    "Q",
+    "Q",
+    "Q",
+    "K",
+    "K",
+    "K",
+    "K",
+    "A",
+    "A",
+    "A",
+    "A",
+    "2",
+    "2",
+    "2",
+    "2",
+    "X",
+    "D"
 ]
 
 WP_model = {
@@ -165,7 +223,7 @@ def init(data):
             env = GameEnv(players)
             for idx, card_play_data in enumerate(card_play_data_list):
                 env.card_play_init(card_play_data)
-                print("initialize success, game start\n")
+                print(f"init pid:{pid}")
 
             # print(f"env.players.keys(): {env.players.keys()}")
             if (
@@ -314,6 +372,64 @@ def close(data):
     }
     return result
 
+#评估手牌分数，返回是否叫地主
+def hand_cards_evaluate(data):
+    global env_list
+    res_type = "evaluate"
+    res_action = ""
+    res_data = {}
+    res_status = ""
+    res_msg = ""
+    try:
+        pid = str(data["pid"])
+        n=10
+        average_win_rate = simulate_win_rate(data, n)
+        if average_win_rate > 50:
+            res_action = "call"
+            res_data = {"pid":pid, "win_rate": average_win_rate}
+        else:
+            res_action = "not_call"
+            res_data = {"pid":pid, "win_rate": average_win_rate}
+        res_status = "ok"
+    except Exception as err:
+        res_action = "unknown"
+        res_status = "fail"
+        res_msg = str(err)
+        res_data = {"pid": pid}
+
+    result = {
+        "type": res_type,
+        "action": res_action,
+        "data": res_data,
+        "status": res_status,
+        "msg": res_msg,
+    }
+    return result
+
+def simulate_win_rate(data, n):
+    total_win_rate = 0
+    original_hand_cards = data["player_data"][0]["hand_cards"]
+    remaining_cards = AllCard.copy()
+    for card in original_hand_cards:
+        remaining_cards.remove(card)
+    original_pid = str(data["pid"])
+    for i in range(n):
+        # 随机选择3张牌作为底牌
+        three_landlord_cards =''.join(random.sample(remaining_cards, 3))
+        data["three_landlord_cards"] = three_landlord_cards
+        data["pid"] = f"{original_pid}_{i}"
+        # 将底牌添加到手牌中
+        data["player_data"][0]["hand_cards"]=f'{original_hand_cards}{three_landlord_cards}'
+        # 调用init函数并获取胜率
+        result = init(data)
+        if result["status"] == "ok":
+            total_win_rate += result["data"]["tips"][0]["confidence"]
+        # 关闭游戏进程
+        close(data)
+    # 计算平均胜率
+    average_win_rate = total_win_rate / n
+    return average_win_rate
+
 def check_model(model):
     if model == "WP":
         return [
@@ -344,10 +460,10 @@ def check_model(model):
 
 
 def get_init_data(data, index):
-    use_hand_cards_env = user_position = three_landlord_cards_env = ai_model = None
+    user_hand_cards_env = user_position = three_landlord_cards_env = ai_model = None
     # 玩家手牌
     user_hand_cards_real = data["player_data"][index]["hand_cards"]
-    use_hand_cards_env = [RealCard2EnvCard[c] for c in list(user_hand_cards_real)]
+    user_hand_cards_env = [RealCard2EnvCard[c] for c in list(user_hand_cards_real)]
     # 玩家角色
     user_position_code = data["player_data"][index]["position_code"]
     user_position = ["landlord_up", "landlord", "landlord_down"][user_position_code]
@@ -366,7 +482,7 @@ def get_init_data(data, index):
         ai_model = ai_model_list[user_position_code]
 
     return (
-        use_hand_cards_env,
+        user_hand_cards_env,
         user_position,
         user_position_code,
         three_landlord_cards_env,

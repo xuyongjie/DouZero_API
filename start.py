@@ -7,7 +7,7 @@ import os
 import time
 import json
 import threading
-from douzero.evaluation.simulation import init, next,close, env_list
+from douzero.evaluation.simulation import init, next,close,hand_cards_evaluate, env_list
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 lock = threading.Lock()
@@ -107,8 +107,11 @@ class Request(BaseHTTPRequestHandler):
         elif data["action"] == "play":  # 出牌阶段
             res = next(data["data"])
         
-        elif data["action"] == "close":
+        elif data["action"] == "close": #关闭游戏进程
             res = close(data["data"])
+            
+        elif data["action"] == "evaluate":
+            res = hand_cards_evaluate(data["data"])
 
         self.send_response(200)
         self.send_header("type", "post")
