@@ -386,10 +386,10 @@ def hand_cards_evaluate(data):
         average_win_rate = simulate_win_rate(data, n)
         if average_win_rate > 50:
             res_action = "call"
-            res_data = {"pid":pid, "win_rate": average_win_rate}
+            res_data = {"pid":pid, "tips": [{"confidence": average_win_rate}]}
         else:
             res_action = "not_call"
-            res_data = {"pid":pid, "win_rate": average_win_rate}
+            res_data = {"pid":pid, "tips": [{"confidence": average_win_rate}]}
         res_status = "ok"
     except Exception as err:
         res_action = "unknown"
